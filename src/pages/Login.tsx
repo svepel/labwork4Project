@@ -6,9 +6,18 @@ import {
 	IonPage,
 	IonTitle,
 	IonToolbar,
+	useIonAlert,
+	useIonLoading,
 } from "@ionic/react";
+import {
+	createUserWithEmailAndPassword,
+	sendPasswordResetEmail,
+	signInWithEmailAndPassword,
+} from "firebase/auth";
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { FIREBASE_AUTH } from "../config/FirebaseConfig";
+import { FirebaseError } from "firebase/app";
 
 type FormValues = {
 	email: string;
@@ -25,15 +34,95 @@ const Login: React.FC = () => {
 		mode: "onBlur",
 	});
 
+	const [show, hide] = useIonLoading();
+	const [present, dismiss] = useIonAlert();
+
 	const onRegister = async () => {
-		console.log("register:", getValues());
+		//console.log("register:", getValues());
+		const { email, password } = getValues();
+		await show();
+		try {
+			const user = await createUserWithEmailAndPassword(
+				FIREBASE_AUTH,
+				email,
+				password
+			);
+			//console.log(user);
+			present({
+				header: "Registration success",
+				message: "ok",
+				buttons: ["OK"],
+			});
+		} catch (error) {
+			if (error instanceof FirebaseError) {
+				//console.log(error);
+				present({
+					header: "Registration failed",
+					message: error.message,
+					buttons: ["OK"],
+				});
+			}
+		} finally {
+			await hide();
+		}
 	};
 
 	const onLogin = async (data: FormValues) => {
-		console.log(data);
+		//console.log(data);
+		const { email, password } = data;
+		await show();
+		try {
+			const user = await signInWithEmailAndPassword(
+				FIREBASE_AUTH,
+				email,
+				password
+			);
+			console.log(user);
+
+			present({
+				header: "Login success",
+				message: "ok",
+				buttons: ["OK"],
+			});
+		} catch (error) {
+			if (error instanceof FirebaseError) {
+				//console.log(error);
+				present({
+					header: "Login failed",
+					message: error.message,
+					buttons: ["OK"],
+				});
+			}
+		} finally {
+			await hide();
+		}
 	};
 
-	const sendReset = async () => {};
+	const sendReset = async () => {
+		const { email } = getValues();
+		await show();
+		try {
+			const user = await sendPasswordResetEmail(FIREBASE_AUTH, email);
+			console.log(user);
+
+			present({
+				header: " email sent",
+				message: "Please check your inbox for future instructions",
+				buttons: ["OK"],
+			});
+		} catch (error) {
+			if (error instanceof FirebaseError) {
+				//console.log(error);
+				present({
+					header: "Reset failed failed",
+					message: error.message,
+					buttons: ["OK"],
+				});
+			}
+		} finally {
+			await hide();
+		}
+	};
 
 	return (
 		<IonPage>
@@ -52,7 +141,7 @@ const Login: React.FC = () => {
 						labelPlacement="floating"
 						label="Email"
 						type="email"
-						placeholder="sveta@gmail.com"
+						placeholder="max@gmail.com"
 						{...register("email", {
 							required: true,
 							pattern: {
