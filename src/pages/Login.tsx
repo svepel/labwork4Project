@@ -8,6 +8,7 @@ import {
 	IonToolbar,
 	useIonAlert,
 	useIonLoading,
+	useIonRouter,
 } from "@ionic/react";
 import {
 	createUserWithEmailAndPassword,
@@ -18,6 +19,7 @@ import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { FIREBASE_AUTH } from "../config/FirebaseConfig";
 import { FirebaseError } from "firebase/app";
+import { useAuth } from "../context/AuthContext";
 
 type FormValues = {
 	email: string;
@@ -36,6 +38,14 @@ const Login: React.FC = () => {
 
 	const [show, hide] = useIonLoading();
 	const [present, dismiss] = useIonAlert();
+	const { user } = useAuth();
+	const router = useIonRouter();
+
+	useEffect(() => {
+		if (user) {
+			router.push("/home", "forward", "replace");
+		}
+	}, [user]);
 
 	const onRegister = async () => {
 		//console.log("register:", getValues());
