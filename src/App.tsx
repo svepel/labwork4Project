@@ -38,24 +38,20 @@ setupIonicReact();
 const AuthLayout: React.FC = () => {
 	const { initialized } = useAuth();
 
+	if (!initialized) <></>;
+
 	return (
 		<>
-			{initialized ? (
-				<IonApp>
-					<IonReactRouter>
-						<IonRouterOutlet>
-							<Route exact path="/" component={Login} />
-							<AuthenticatedRoute>
-								<Route exact path="/home" component={Home} />
-							</AuthenticatedRoute>
-						</IonRouterOutlet>
-					</IonReactRouter>
-				</IonApp>
-			) : (
-				<IonApp>
-					<IonLoading isOpen />
-				</IonApp>
-			)}
+			<IonApp>
+				<IonReactRouter>
+					<IonRouterOutlet>
+						<Route exact path="/" component={Login} />
+						<AuthenticatedRoute>
+							<Route exact path="/home" component={Home} />
+						</AuthenticatedRoute>
+					</IonRouterOutlet>
+				</IonReactRouter>
+			</IonApp>
 		</>
 	);
 };
