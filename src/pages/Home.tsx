@@ -18,11 +18,14 @@ import {
 	IonPage,
 	IonTitle,
 	IonToolbar,
+	useIonLoading,
 } from "@ionic/react";
 import { useAuth } from "../context/AuthContext";
 import {
 	addOutline,
 	closeOutline,
+	cloudDownloadOutline,
+	fileTrayOutline,
 	logOutOutline,
 	trashBinOutline,
 } from "ionicons/icons";
@@ -41,7 +44,8 @@ import {
 	updateDoc,
 	where,
 } from "firebase/firestore";
-import { FIREBASE_DB } from "../config/FirebaseConfig";
+import { FIREBASE_DB, FIREBASE_STORAGE } from "../config/FirebaseConfig";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 export interface Task {
 	id?: string;
@@ -59,6 +63,11 @@ const Home: React.FC = () => {
 	const [taskCollectionRef, setTaskCollectionRef] =
 		useState<CollectionReference>();
 	const [tasks, setTasks] = useState<Task[]>([]);
+
+	const [fileToUpload, setFileToUpload] = useState<File | null>(null);
+	const fileInput = useRef<HTMLInputElement>(null);
+
+	const [show, hide] = useIonLoading();
 
 	useEffect(() => {
 		const taskCollection = collection(FIREBASE_DB, "tasks");
@@ -94,8 +103,16 @@ const Home: React.FC = () => {
 				createdAt: serverTimestamp(),
 			};
 
+			await show();
+
+			if (fileToUpload) {
+				const url = await uploadFile();
+				console.log("file:Home.tsx:79 onDismiss url:", url);
+				newTask.file = url;
+			}
 			await addDoc(taskCollectionRef!, newTask);
 			setTask("");
+			await hide();
 		}
 	};
 
@@ -109,6 +126,15 @@ const Home: React.FC = () => {
 	const deleteTask = async (task: Task) => {
 		const docRef = doc(FIREBASE_DB, `tasks/${task.id}`);
 		deleteDoc(docRef);
+	};
+
+	const uploadFile = async () => {
+		const storageRef = ref(
+			FIREBASE_STORAGE,
+			`files/${user?.uid}/${fileToUpload?.name}`
+		);
+		await uploadBytes(storageRef, fileToUpload!);
+		return getDownloadURL(storageRef);
 	};
 
 	return (
@@ -137,6 +163,16 @@ const Home: React.FC = () => {
 									{task.title}
 									<p>{task.createdAt?.toDate().toLocaleDateString()}</p>
 								</IonLabel>
+
+								{task.file && (
+									<IonButton
+										slot="end"
+										fill="clear"
+										onClick={() => window.open(task.file, "_blank")}
+									>
+										<IonIcon slot="icon-only" icon={cloudDownloadOutline} />
+									</IonButton>
+								)}
 							</IonItem>
 
 							<IonItemOptions side="end">
@@ -150,8 +186,8 @@ const Home: React.FC = () => {
 
 				<IonModal
 					trigger="add-task"
-					breakpoints={[0, 0.3, 0.5]}
-					initialBreakpoint={0.3}
+					breakpoints={[0, 0.5]}
+					initialBreakpoint={0.5}
 					ref={modal}
 					onWillDismiss={onDismiss}
 				>
@@ -173,6 +209,22 @@ const Home: React.FC = () => {
 							placeholder="Enter task"
 							onIonInput={(e) => setTask(e.detail.value!)}
 						/>
+
+						<input
+							type="file"
+							ref={fileInput}
+							hidden
+							onChange={(e) => setFileToUpload(e.target.files![0])}
+						/>
+
+						<IonButton
+							expand="block"
+							onClick={() => fileInput.current?.click()}
+						>
+							<IonIcon slot="start" icon={fileTrayOutline} />
+							Upload file
+						</IonButton>
+
 						<IonButton
 							expand="block"
 							onClick={() => modal.current?.dismiss(task, "confirm")}
